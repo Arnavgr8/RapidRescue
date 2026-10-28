@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RapidRescue - Ambulance Dispatch and GPS Tracking Prototype">
+    <title>{{ title }}</title>
+
+    <!-- Leaflet CSS for interactive maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+</head>
+
+<body class="dark-theme">
+    <header class="site-header">
+        <nav class="navbar container">
+            <a class="logo" href="{{ url_for('request_page') }}">
+                <span class="logo-icon">🚑</span> RapidRescue<span class="logo-accent">.</span>
+            </a>
+
+            <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation" aria-expanded="false"
+                aria-controls="nav-links">
+                ☰
+            </button>
+
+            <div class="nav-links" id="nav-links">
+                <a href="{{ url_for('request_page') }}" class="nav-item">Patient Request</a>
+                <a href="{{ url_for('driver_portal') }}" class="nav-item">Driver Portal</a>
+                <a href="{{ url_for('dispatch_overview') }}" class="nav-item">Dispatch Fleet</a>
+                <a href="{{ url_for('about') }}" class="nav-item">About</a>
+                <a href="{{ url_for('request_page') }}" class="btn btn-emergency">
+                    Emergency Call ↗
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        <div class="container flash-container" aria-live="polite">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endwith %}
+        </div>
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-content">
+            <div>
+                <p><strong>RapidRescue</strong> • Concurrency-safe Ambulance Dispatch & GPS Tracking System</p>
+                <p class="footer-subtext">Demonstrating nearest-unit Haversine dispatch, GPS staleness detection, and
+                    secure token tracking.</p>
+            </div>
+            <div class="footer-links">
+                <a href="{{ url_for('request_page') }}">Patient Portal</a>
+                <a href="{{ url_for('driver_login') }}">Driver Portal</a>
+                <a href="{{ url_for('dispatch_overview') }}">Fleet Overview</a>
+                <a href="{{ url_for('about') }}">About Project</a>
+            </div>
+        </div>
+    </footer>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>
