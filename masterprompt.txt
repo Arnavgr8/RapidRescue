@@ -1,0 +1,87 @@
+PROJECT: AMBULANCE DISPATCH AND GPS TRACKING SYSTEM
+C — Context
+
+I am building an ideathon MVP called RapidRescue: an ambulance dispatch and tracking platform using Python Flask, SQLite, SQLAlchemy, HTML, CSS, vanilla JavaScript, Leaflet, and OpenStreetMap.
+
+The app should run locally and demonstrate a complete emergency-response workflow using simulated ambulance data and test locations.
+
+This is a prototype for demonstration only, not a real emergency service.
+
+O — Objective
+
+Build a working full-stack application that can:
+
+Display an emergency dispatch dashboard.
+Register an emergency with patient location, severity, description, and contact details.
+Automatically select the nearest AVAILABLE ambulance based on geographic distance.
+Atomically reserve the selected ambulance to prevent double assignment.
+Create an emergency record and a dispatch assignment.
+Display ambulances and emergencies on an interactive map.
+Update ambulance GPS coordinates and show location changes on the map.
+Track assignment status: available, dispatched, en route, arrived, completed, and offline.
+Show active emergencies, available ambulances, completed calls, and dispatch history.
+Provide a one-click demo mode with seeded ambulances and simulated GPS movement.
+Provide REST APIs, database initialization, input validation, and automated tests.
+Include complete setup instructions in README.md.
+S — Style
+
+Create a polished emergency operations dashboard with:
+
+Dark navy background and high-contrast typography.
+Red accents for emergencies.
+Green indicators for available ambulances.
+Amber indicators for en-route ambulances.
+A large Leaflet map as the central element.
+Responsive sidebar, summary cards, emergency queue, and ambulance table.
+Clear status badges, loading states, empty states, and error messages.
+Accessible controls and responsive layouts.
+
+Use reusable Jinja templates, modular CSS, and maintainable JavaScript. Do not use React or another frontend framework.
+
+T — Tone
+
+Treat this as a professional engineering task. Be precise, conservative, security-conscious, and explicit about limitations. Do not claim a feature works until you have tested it.
+
+A — Audience
+
+The audience is an ideathon judging panel and a student development team that needs a functional, easy-to-demonstrate MVP.
+
+R — Response and deliverables
+
+First inspect the workspace and produce an implementation plan with architecture, file structure, database schema, API contracts, dispatch algorithm, and test plan.
+
+Wait for my approval before making large changes.
+
+After approval, implement the project in incremental stages.
+
+Required deliverables:
+
+app.py and modular Flask routes/services if appropriate
+models.py
+dispatch_service.py
+gps_service.py
+requirements.txt
+.env.example
+.gitignore
+templates/base.html
+templates/dashboard.html
+templates/emergency_detail.html
+templates/404.html
+static/css/style.css
+static/js/dashboard.js
+static/js/map.js
+static/images/ for local assets if needed
+tests/ with pytest tests
+README.md
+
+Use SQLite by default, SQLAlchemy ORM, Flask-SocketIO for live updates, and REST endpoints as a fallback. If a dependency causes compatibility issues, choose a simpler compatible alternative and document it.
+
+Implement Haversine distance in kilometers and choose the nearest eligible ambulance using its latest known coordinates. Clearly distinguish straight-line distance from actual road travel time.
+
+Every emergency and assignment must be persisted. Use database transactions and concurrency-safe assignment logic.
+
+Use deterministic test data and simulated GPS movement. Browser geolocation may be an optional feature, but must never be required for the demo to work.
+
+After implementation, run the tests, start the server, open the app in a browser if available, exercise the complete dispatch workflow, inspect the browser console, fix errors, and report what passed and what remains incomplete.
+
+Do not stop after creating a plan, generating files, or producing a visually convincing mockup. The objective is a working, tested prototype.

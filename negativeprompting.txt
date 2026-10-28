@@ -1,0 +1,35 @@
+NEGATIVE PROMPT — STRICT ENGINEERING CONSTRAINTS
+
+Do NOT:
+
+Generate a static dashboard with fake buttons or hardcoded status counts.
+Assign ambulances randomly or select an ambulance that is offline, unavailable, or already assigned.
+Use random coordinates as a substitute for real GPS updates without explicitly labeling them as simulated data.
+Claim that straight-line distance is road distance or that a calculated estimate is a verified ETA.
+Hardcode patient records, dispatch assignments, or changing dashboard counts in frontend JavaScript.
+Keep critical application state exclusively in browser memory.
+create duplicate ambulance assignments when multiple requests arrive simultaneously.
+Update an ambulance position without validating coordinates and identifying the ambulance.
+Trust ambulance IDs, severity, status, or coordinates supplied by the browser without server-side validation.
+Expose secrets, credentials, patient contact information, or detailed emergency records in public endpoints or logs.
+Use eval, unsafe SQL string interpolation, or unescaped user-provided HTML.
+Enable unrestricted CORS, expose Flask debug mode in production, or commit real secrets.
+Require a paid maps API, billing account, API key, or external GPS hardware for the basic demo.
+Invent API responses, success messages, or database persistence.
+Swallow exceptions, ignore failing tests, or silently fall back to incorrect dispatch behavior.
+Introduce unnecessary frameworks, microservices, Docker dependencies, or overengineered architecture.
+Delete existing project files without inspecting them first.
+Claim that real emergency dispatch or production-grade security has been achieved.
+
+MANDATORY:
+
+Keep simulated GPS clearly labeled.
+Validate all incoming data on the server.
+Enforce ambulance availability and assignment consistency.
+Make dispatch failure explicit when no eligible ambulance exists.
+Persist state and status transitions.
+Use automated tests for dispatch selection, unavailable ambulances, no-ambulance scenarios, invalid inputs, and conflicting assignments.
+Inspect generated changes before executing commands that modify the environment or install dependencies.
+Report test results truthfully.
+Ask for approval before any deployment, external service integration, or action involving real patient data.
+Never use this prototype as the sole authority for real-world emergency dispatch.
