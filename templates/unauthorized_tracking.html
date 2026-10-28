@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container page-container" style="max-width: 600px; margin: 40px auto;">
+    <div class="card text-center">
+        <div style="font-size: 3rem; margin-bottom: 15px;">🔒</div>
+        <h2>Restricted <span>Tracking Access</span></h2>
+        <p class="text-muted">
+            Tracking details for emergency <strong>{{ reference_no }}</strong> are protected by an unguessable tracking token to safeguard patient privacy.
+        </p>
+        <p class="text-muted text-sm">
+            To view this emergency tracking screen, please provide the unique tracking token issued when the emergency was registered.
+        </p>
+
+        <form method="GET" action="{{ url_for('track_page', reference_no=reference_no) }}" style="margin-top: 25px;">
+            <div class="form-group">
+                <label for="token_input">Tracking Token</label>
+                <input id="token_input" name="token" type="text" placeholder="Enter your secret tracking token" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Access Tracking Screen ↗</button>
+        </form>
+
+        <div style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+            <a href="{{ url_for('request_page') }}" class="btn btn-outline btn-sm">← Back to Request Portal</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

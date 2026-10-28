@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container page-container">
+    <!-- Top Status Banner -->
+    <div class="card tracking-header-card">
+        <div class="tracking-summary">
+            <div>
+                <span class="badge badge-outline">REFERENCE: {{ request_obj.reference_no }}</span>
+                <button type="button" id="btn-copy-ref" class="btn-copy" title="Copy tracking reference">📋 Copy</button>
+                <h2>Emergency <span>Dispatch Status</span></h2>
+                <p class="text-muted">Save your reference and token to reopen tracking on any device without an account.</p>
+            </div>
+            <div class="status-box">
+                <span class="status-label">Current Status</span>
+                <div id="live-status-badge" class="badge badge-lg badge-status-{{ request_obj.status.lower() }}">
+                    {{ request_obj.status }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Reference & Security Token Share Strip -->
+        <div class="token-banner">
+            <span class="token-title">🔒 Secure Tracking Token:</span>
+            <code id="tracking-token-display">{{ token }}</code>
+            <button type="button" id="btn-copy-link" class="btn-copy" title="Copy full tracking link">🔗 Copy Tracking Link</button>
+        </div>
+    </div>
+
+    <!-- Main Grid: Map & Live Dispatch Details -->
+    <div class="tracking-grid">
+        <!-- Interactive Leaflet Map -->
+        <div class="card map-card">
+            <div class="card-header flex-header">
+                <div>
+                    <h3>Live GPS Map</h3>
+                    <small id="gps-source-label" class="gps-source-badge">
+                        {% if request_obj.assigned_ambulance and request_obj.assigned_ambulance.is_simulated_gps %}
+                            ⚠️ Simulated Demo GPS Movement
+                        {% else %}
+                            🛰️ Live GPS Tracking
+                        {% endif %}
+                    </small>
+                </div>
+                <div id="polling-indicator" class="pulse-sync" title="Auto-updating every 3 seconds">
+                    <span class="sync-dot"></span> Live Polling
+                </div>
+            </div>
+
+            <div id="tracking-map" class="map-view"></div>
+
+            <div class="map-legend">
+                <span><span class="legend-dot red-dot"></span> Patient Pickup</span>
+                <span><span class="legend-dot green-dot"></span> Assigned Ambulance</span>
+                <span><span class="legend-line"></span> Straight-Line Trajectory</span>
+            </div>
+        </div>
+
+        <!-- Live Dispatch Information Panel -->
+        <div class="card details-card">
+            <h3>Dispatch & Unit Details</h3>
+
+            <div class="details-section">
+                <h4>Assigned Unit</h4>
+                <div id="unit-info-container">
+                    {% if request_obj.assigned_ambulance %}
+                        <div class="unit-stat-row">
+                            <span class="stat-label">Call Sign:</span>
+                            <span class="stat-value" id="amb-call-sign">{{ request_obj.assigned_ambulance.call_sign }}</span>
+                        </div>
+                        <div class="unit-stat-row">
+                            <span class="stat-label">Driver:</span>
+                            <span class="stat-value" id="amb-driver">{{ request_obj.assigned_ambulance.driver.name if request_obj.assigned_ambulance.driver else 'Driver' }}</span>
+                        </div>
+                        <div class="unit-stat-row">
+                            <span class="stat-label">Vehicle Plate:</span>
+                            <span class="stat-value">{{ request_obj.assigned_ambulance.vehicle_plate }}</span>
+                        </div>
+                        <div class="unit-stat-row">
+                            <span class="stat-label">Last GPS Update:</span>
+                            <span class="stat-value" id="amb-last-gps-time" style="color: var(--color-success); font-weight: 600;">
+                                {{ request_obj.assigned_ambulance.last_gps_updated_at.strftime('%H:%M:%S UTC') if request_obj.assigned_ambulance.last_gps_updated_at else 'Just now' }}
+                            </span>
+                        </div>
+                    {% else %}
+                        <p class="text-warning">No unit currently assigned.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="details-section">
+                <h4>Distance & Estimated Arrival</h4>
+                <div class="stat-box-highlight">
+                    <div class="stat-unit">
+                        <span class="stat-big" id="stat-distance">
+                            {{ "%.2f"|format(request_obj.straight_line_distance_km) if request_obj.straight_line_distance_km is not none else "--" }}
+                        </span>
+                        <span class="stat-unit-label">km (Straight-line)</span>
+                    </div>
+                    <div class="stat-unit">
+                        <span class="stat-big" id="stat-eta">
+                            {{ "%.1f"|format(request_obj.estimated_straight_line_eta_minutes) if request_obj.estimated_straight_line_eta_minutes is not none else "--" }}
+                        </span>
+                        <span class="stat-unit-label">min (Est. travel time)</span>
+                    </div>
+                </div>
+                <p class="notice-eta">
+                    ⚠️ <strong>Important distinction:</strong> Distance and ETA are straight-line calculations based on average 40 km/h speed. Real road conditions and traffic may vary.
+                </p>
+            </div>
+
+            <div class="details-section">
+                <h4>Pickup Location</h4>
+                <p class="location-text">📍 <span id="disp-address">{{ request_obj.pickup_address }}</span></p>
+                <small class="text-muted">Coords: {{ request_obj.latitude }}, {{ request_obj.longitude }}</small>
+            </div>
+
+            <div class="details-section">
+                <h4>Emergency Guidance</h4>
+                <ul class="emergency-tips">
+                    <li>Keep your phone line open for the driver.</li>
+                    <li>If safe, position someone outside to flag the ambulance.</li>
+                    <li>Do not leave your specified pickup location.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Injected variables for JS tracking script
+    const TRACKING_REF = {{ request_obj.reference_no|tojson }};
+    const TRACKING_TOKEN = {{ token|tojson }};
+    const PATIENT_LAT = {{ request_obj.latitude }};
+    const PATIENT_LON = {{ request_obj.longitude }};
+    const INITIAL_AMB_LAT = {{ (request_obj.assigned_ambulance.current_latitude if request_obj.assigned_ambulance else None)|tojson }};
+    const INITIAL_AMB_LON = {{ (request_obj.assigned_ambulance.current_longitude if request_obj.assigned_ambulance else None)|tojson }};
+    const INITIAL_AMB_SIGN = {{ (request_obj.assigned_ambulance.call_sign if request_obj.assigned_ambulance else None)|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/track.js') }}"></script>
+{% endblock %}
+

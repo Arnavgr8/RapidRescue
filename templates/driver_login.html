@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container page-container" style="max-width: 680px; margin: 40px auto;">
+    <div class="card">
+        <div class="card-header text-center">
+            <span class="badge badge-outline">DRIVER AUTHENTICATION</span>
+            <h1>Ambulance <span>Driver Portal</span></h1>
+            <p class="text-muted">Controlled driver session access. For the demo, select a seeded driver or log in with your badge ID.</p>
+        </div>
+
+        <!-- Demo Quick Selectors -->
+        <div class="demo-driver-selector">
+            <h3>Quick Select Demo Driver</h3>
+            <div class="driver-cards-grid">
+                {% for d in drivers %}
+                <div class="driver-quick-card">
+                    <div class="driver-badge">{{ d.badge_number }}</div>
+                    <div class="driver-name">{{ d.name }}</div>
+                    <div class="driver-vehicle">
+                        Ambulance: <strong>{{ d.ambulance.call_sign if d.ambulance else 'None' }}</strong>
+                        <span class="status-dot status-{{ d.ambulance.status.lower() if d.ambulance else 'offline' }}"></span>
+                    </div>
+                    <form method="POST" action="{{ url_for('driver_login') }}">
+                        <input type="hidden" name="badge_number" value="{{ d.badge_number }}">
+                        <input type="hidden" name="pin" value="{{ d.pin }}">
+                        <button type="submit" class="btn btn-outline btn-sm btn-full">
+                            Select as {{ d.name.split()[0] }} →
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="divider"><span>OR MANUAL LOGIN</span></div>
+
+        <!-- Manual Form -->
+        <form method="POST" action="{{ url_for('driver_login') }}" class="driver-login-form">
+            <div class="form-group">
+                <label for="badge_number">Driver Badge Number</label>
+                <input id="badge_number" name="badge_number" type="text" placeholder="e.g. DRV-101" required>
+            </div>
+
+            <div class="form-group">
+                <label for="pin">Security PIN (Default demo PIN: 1234)</label>
+                <input id="pin" name="pin" type="password" placeholder="••••" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">Log In to Dashboard ↗</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

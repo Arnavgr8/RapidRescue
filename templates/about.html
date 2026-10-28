@@ -1,0 +1,64 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="page-hero">
+    <div class="container">
+        <span class="eyebrow">OUR MISSION</span>
+        <h1>Innovation with <span>purpose.</span></h1>
+        <p>
+            We believe the best ideas solve real problems.
+            Here's the thinking behind our project.
+        </p>
+    </div>
+</section>
+
+<section class="section container about-layout">
+    <div>
+        <span class="eyebrow">THE PROBLEM</span>
+        <h2>What needs to change?</h2>
+        <p>
+            Describe the problem your users face, why current solutions
+            fall short, and why this issue deserves attention.
+        </p>
+    </div>
+
+    <div>
+        <span class="eyebrow">OUR SOLUTION</span>
+        <h2>A better way forward.</h2>
+        <p>
+            Explain how your proposed product works, who benefits from it,
+            and what makes your approach different.
+        </p>
+    </div>
+</section>
+
+<section class="tech-section">
+    <div class="container">
+        <span class="eyebrow">OUR TECH STACK</span>
+        <h2>Simple tools. Big possibilities.</h2>
+
+        <div class="tech-list">
+            <span>Python</span>
+            <span>Flask</span>
+            <span>HTML5</span>
+            <span>CSS3</span>
+            <span>JavaScript</span>
+            <span>Database — add your choice</span>
+        </div>
+    </div>
+</section>
+
+<section class="section container">
+    <h2>Meet the team</h2>
+    <p>
+        Add your team members, their roles, and the expertise they bring
+        to this project.
+    </p>
+    <a href="{{ url_for('home') }}#contact" class="btn btn-primary">
+        Get in touch ↗
+    </a>
+</section>
+
+{% endblock %}

@@ -1,0 +1,91 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="hero">
+    <div class="container hero-content">
+        <span class="eyebrow">YOUR IDEATHON STARTS HERE</span>
+
+        <h1>Big ideas.<br><span>Real impact.</span></h1>
+
+        <p class="hero-description">
+            We're building smarter solutions to real-world problems.
+            Join us in turning bold ideas into meaningful change.
+        </p>
+
+        <div class="hero-actions">
+            <a href="#features" class="btn btn-primary">Explore the idea</a>
+            <a href="#contact" class="btn btn-secondary">Get involved ↗</a>
+        </div>
+
+        <div class="hero-note">
+            <span class="status-dot"></span>
+            Emergency dispatch built for the future
+        </div>
+    </div>
+</section>
+
+<section class="section container" id="features">
+    <div class="section-heading">
+        <span class="eyebrow">WHAT WE DO</span>
+        <h2>Designed around <span>impact.</span></h2>
+        <p>A flexible starting point for presenting your solution to judges.</p>
+    </div>
+
+    <div class="feature-grid">
+        <article class="feature-card">
+            <div class="feature-icon">✦</div>
+            <h3>Innovative Thinking</h3>
+            <p>Challenge existing approaches and develop a better solution.</p>
+        </article>
+
+        <article class="feature-card">
+            <div class="feature-icon">◎</div>
+            <h3>Real-World Impact</h3>
+            <p>Focus on a meaningful problem and the people it affects.</p>
+        </article>
+
+        <article class="feature-card">
+            <div class="feature-icon">↗</div>
+            <h3>Built to Scale</h3>
+            <p>Start with a simple MVP and leave room for future growth.</p>
+        </article>
+    </div>
+</section>
+
+<section class="cta-section" id="contact">
+    <div class="container cta-grid">
+        <div>
+            <span class="eyebrow">LET'S BUILD SOMETHING</span>
+            <h2>Have an idea?<br>Let's hear it.</h2>
+            <p>Send us your proposal or tell us how you'd like to contribute.</p>
+        </div>
+
+        <form class="contact-form"
+              action="{{ url_for('submit') }}"
+              method="POST">
+
+            <label for="name">Your name</label>
+            <input id="name" name="name" type="text"
+                   placeholder="Enter your name"
+                   maxlength="100" required>
+
+            <label for="email">Email address</label>
+            <input id="email" name="email" type="email"
+                   placeholder="you@example.com"
+                   maxlength="254" required>
+
+            <label for="message">Your idea</label>
+            <textarea id="message" name="message" rows="4"
+                      placeholder="Tell us what you're building..."
+                      maxlength="3000" required></textarea>
+
+            <button type="submit" class="btn btn-primary btn-full">
+                Submit your idea ↗
+            </button>
+        </form>
+    </div>
+</section>
+
+{% endblock %}

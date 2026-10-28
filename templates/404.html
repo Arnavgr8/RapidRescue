@@ -1,0 +1,17 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="page-hero error-page">
+    <div class="container">
+        <span class="eyebrow">ERROR 404</span>
+        <h1>Oops! <span>Wrong turn.</span></h1>
+        <p>The page you're looking for doesn't exist or has been moved.</p>
+        <a href="{{ url_for('home') }}" class="btn btn-primary">
+            Back to homepage
+        </a>
+    </div>
+</section>
+
+{% endblock %}

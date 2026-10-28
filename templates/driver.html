@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container page-container" style="max-width: 960px; margin: 30px auto;">
+    <div class="card">
+        <div class="card-header flex-header">
+            <div>
+                <span class="badge badge-outline">DRIVER LIVE GPS INTERFACE</span>
+                <h1>Ambulance <span>Driver & GPS Portal</span></h1>
+                <p class="text-muted">Enter your name and vehicle number to go online and stream your live GPS location to central dispatch.</p>
+            </div>
+            <div>
+                <span id="amb-status-pill" class="badge badge-lg badge-status-offline">OFFLINE</span>
+            </div>
+        </div>
+
+        <div id="driver-alert" class="alert d-none"></div>
+
+        <!-- 1. Driver Name & Vehicle Registration Form -->
+        <div style="background-color: var(--bg-surface); padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 20px;">
+            <h3 style="font-size: 1.05rem; margin-bottom: 12px; color: var(--text-primary);">Driver & Vehicle Details</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="driver-name-input" style="font-weight: 600; font-size: 0.9rem;">Your Name <span class="required" style="color: var(--color-emergency);">*</span></label>
+                    <input id="driver-name-input" type="text" placeholder="e.g. Alex Morgan" value="Alex Morgan" style="width: 100%; padding: 11px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm);" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="vehicle-plate-input" style="font-weight: 600; font-size: 0.9rem;">Vehicle Plate / Number <span class="required" style="color: var(--color-emergency);">*</span></label>
+                    <input id="vehicle-plate-input" type="text" placeholder="e.g. KA-01-EA-1001" value="KA-01-EA-1001" style="width: 100%; padding: 11px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm);" required>
+                </div>
+            </div>
+
+            <!-- Quick Demo Plate Selectors -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Quick Demo Vehicles:</span>
+                <button type="button" class="btn-preset-plate btn btn-outline btn-sm" data-plate="KA-01-EA-1001" data-driver="Alex Morgan">MED-101 (KA-01-EA-1001)</button>
+                <button type="button" class="btn-preset-plate btn btn-outline btn-sm" data-plate="KA-01-EA-1002" data-driver="Sarah Chen">MED-102 (KA-01-EA-1002)</button>
+                <button type="button" class="btn-preset-plate btn btn-outline btn-sm" data-plate="KA-01-EA-1003" data-driver="James Wilson">MED-103 (KA-01-EA-1003)</button>
+            </div>
+
+            <!-- Online / Offline Action Buttons -->
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <button type="button" id="btn-go-online" class="btn btn-success" style="padding: 12px 24px; font-weight: bold; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                    🟢 Go Online & Share Live Location
+                </button>
+                <button type="button" id="btn-go-offline" class="btn btn-secondary" style="padding: 12px 20px;">
+                    ⚪ Go Offline (End Shift)
+                </button>
+                <span id="active-vehicle-tag" class="text-muted" style="font-size: 0.85rem; margin-left: auto;"></span>
+            </div>
+        </div>
+
+        <!-- 2. Live GPS Status & Location Details -->
+        <div style="background-color: var(--bg-surface); padding: 18px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 20px;">
+            <div class="flex-header" style="margin-bottom: 12px;">
+                <div>
+                    <h3 style="font-size: 1rem;">Live Location Broadcasting</h3>
+                    <small class="text-muted">Updates coordinates every 5s while online.</small>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="gps-status-badge" class="badge badge-gps badge-gps-offline">OFFLINE</span>
+                    <span id="gps-type-badge" class="badge badge-outline">Source: None</span>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; background: var(--bg-card); padding: 12px 16px; border-radius: 4px; margin-bottom: 14px; font-size: 0.85rem;">
+                <div>
+                    <span style="color: var(--text-muted); display: block;">Live Coordinates:</span>
+                    <strong id="coords-text" style="color: var(--text-primary); font-size: 0.95rem;">--</strong>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); display: block;">GPS Accuracy:</span>
+                    <strong id="accuracy-text" style="color: var(--text-primary); font-size: 0.95rem;">--</strong>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); display: block;">Last Broadcast:</span>
+                    <strong id="timestamp-text" style="color: var(--text-primary); font-size: 0.95rem;">Never</strong>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button type="button" id="btn-refresh-gps" class="btn btn-primary btn-sm">
+                    🛰️ Re-acquire Browser GPS
+                </button>
+                <button type="button" id="btn-sim-gps" class="btn btn-warning btn-sm" title="Clearly labeled simulation when browser GPS is unavailable">
+                    ⚠️ Broadcast Demo Simulated Coordinates
+                </button>
+                <button type="button" id="btn-stop-gps" class="btn btn-outline btn-sm">
+                    ⏹️ Pause Broadcast Loop
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. Driver Interactive Live Map -->
+        <div style="margin-bottom: 20px;">
+            <div class="flex-header" style="margin-bottom: 8px;">
+                <h3 style="font-size: 1rem;">Vehicle Position on Live Map</h3>
+                <small class="text-muted">Updates smoothly as you move</small>
+            </div>
+            <div id="driver-live-map" style="height: 320px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);"></div>
+        </div>
+
+        <!-- 4. Active Emergency Mission Card (Appears when assigned) -->
+        <div id="mission-card" class="d-none" style="background-color: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); padding: 18px; border-radius: var(--radius-sm);">
+            <div class="flex-header" style="margin-bottom: 10px;">
+                <h3 style="color: var(--color-emergency); font-size: 1.05rem;">🚨 Active Emergency Assignment</h3>
+                <span id="mission-status-badge" class="badge badge-status-assigned">DISPATCHED</span>
+            </div>
+            <p style="font-size: 0.9rem; margin-bottom: 6px;">Reference: <strong id="mission-ref">--</strong></p>
+            <p style="font-size: 0.9rem; margin-bottom: 12px;">Pickup: <span id="mission-pickup">--</span></p>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" id="btn-mission-step" class="btn btn-warning btn-sm">
+                    ⚡ Step Demo GPS Toward Patient (25%)
+                </button>
+                <button type="button" id="btn-mission-arrive" class="btn btn-info btn-sm">
+                    Mark Arrived
+                </button>
+                <button type="button" id="btn-mission-complete" class="btn btn-success btn-sm">
+                    Complete Trip (Release Unit)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const inputDriverName = document.getElementById("driver-name-input");
+    const inputVehiclePlate = document.getElementById("vehicle-plate-input");
+    const presetPlateButtons = document.querySelectorAll(".btn-preset-plate");
+    const activeVehicleTag = document.getElementById("active-vehicle-tag");
+
+    const statusPill = document.getElementById("amb-status-pill");
+    const btnOnline = document.getElementById("btn-go-online");
+    const btnOffline = document.getElementById("btn-go-offline");
+    const btnRefreshGps = document.getElementById("btn-refresh-gps");
+    const btnSimGps = document.getElementById("btn-sim-gps");
+    const btnStopGps = document.getElementById("btn-stop-gps");
+
+    const gpsStatusBadge = document.getElementById("gps-status-badge");
+    const gpsTypeBadge = document.getElementById("gps-type-badge");
+    const coordsText = document.getElementById("coords-text");
+    const accuracyText = document.getElementById("accuracy-text");
+    const timestampText = document.getElementById("timestamp-text");
+    const alertBox = document.getElementById("driver-alert");
+
+    // Mission elements
+    const missionCard = document.getElementById("mission-card");
+    const missionRef = document.getElementById("mission-ref");
+    const missionPickup = document.getElementById("mission-pickup");
+    const missionStatusBadge = document.getElementById("mission-status-badge");
+    const btnMissionStep = document.getElementById("btn-mission-step");
+    const btnMissionArrive = document.getElementById("btn-mission-arrive");
+    const btnMissionComplete = document.getElementById("btn-mission-complete");
+
+    let currentAmbulanceId = 1;
+    let currentLat = 12.9716;
+    let currentLon = 77.5946;
+    let gpsLoopId = null;
+    let missionPollId = null;
+    let isSimulated = false;
+
+    // Preset plate buttons
+    presetPlateButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            inputVehiclePlate.value = btn.getAttribute("data-plate");
+            inputDriverName.value = btn.getAttribute("data-driver");
+            showAlert(`Selected demo vehicle: ${btn.getAttribute("data-plate")}`, "alert-info");
+        });
+    });
+
+    // Initialize Map
+    const map = L.map("driver-live-map").setView([currentLat, currentLon], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18
+    }).addTo(map);
+
+    const ambIcon = L.divIcon({
+        className: "driver-pin",
+        html: '<div style="position:relative; width:28px; height:28px;"><div class="pulse-ring-green"></div><div style="background-color:#10B981; width:28px; height:28px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:14px; box-shadow:0 0 10px #10B981;">🚑</div></div>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+    });
+    const marker = L.marker([currentLat, currentLon], { icon: ambIcon }).addTo(map);
+    marker.bindPopup("<strong>My Ambulance</strong><br>Location will update live.");
+
+    // 1. Go Online with Driver Name and Vehicle Number
+    btnOnline.addEventListener("click", async () => {
+        const driverName = inputDriverName.value.trim();
+        const vehiclePlate = inputVehiclePlate.value.trim();
+
+        if (!driverName || !vehiclePlate) {
+            showAlert("Please enter your Name and Vehicle Number.", "alert-danger");
+            return;
+        }
+
+        showAlert("Connecting driver & registering vehicle...", "alert-info");
+
+        try {
+            // Post driver name and vehicle number to server
+            const resp = await fetch("/api/driver/onboard", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    driver_name: driverName,
+                    vehicle_plate: vehiclePlate
+                })
+            });
+
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                currentAmbulanceId = data.ambulance_id || data.ambulance.id;
+                activeVehicleTag.textContent = `Unit: ${data.call_sign} (${data.vehicle_plate}) • Driver: ${data.driver_name}`;
+                statusPill.textContent = data.status || "AVAILABLE";
+                statusPill.className = `badge badge-lg badge-status-${(data.status || 'available').toLowerCase()}`;
+
+                showAlert(`✓ <strong>Online & Available:</strong> ${data.driver_name} registered on ${data.vehicle_plate} (${data.call_sign}). Acquiring your live location...`, "alert-success");
+
+                // Immediately start capturing browser GPS and broadcasting location every 5 seconds
+                startLiveLocationBroadcasting();
+                startMissionPolling();
+            } else {
+                showAlert(data.error || "Failed to go online.", "alert-danger");
+            }
+        } catch (e) {
+            showAlert("Network error connecting to dispatch server.", "alert-danger");
+        }
+    });
+
+    // 2. Go Offline
+    btnOffline.addEventListener("click", async () => {
+        if (!currentAmbulanceId) return;
+
+        try {
+            const resp = await fetch(`/api/ambulances/${currentAmbulanceId}/offline`, { method: "POST" });
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                showAlert(`Vehicle is now OFFLINE. Shift ended.`, "alert-warning");
+                stopGpsLoop();
+                stopMissionPolling();
+                statusPill.textContent = "OFFLINE";
+                statusPill.className = "badge badge-lg badge-status-offline";
+                activeVehicleTag.textContent = "";
+            } else {
+                showAlert(data.error || "Cannot go offline.", "alert-danger");
+            }
+        } catch (e) {
+            showAlert("Network error connecting to dispatch server.", "alert-danger");
+        }
+    });
+
+    // Publish location to backend
+    async function publishLocation(lat, lon, accuracy = null, simulated = false) {
+        if (!currentAmbulanceId) return;
+
+        try {
+            const resp = await fetch(`/api/ambulances/${currentAmbulanceId}/location`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    latitude: lat,
+                    longitude: lon,
+                    is_simulated: simulated
+                })
+            });
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                currentLat = lat;
+                currentLon = lon;
+                coordsText.textContent = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+                accuracyText.textContent = accuracy ? `±${Math.round(accuracy)}m` : (simulated ? "Simulated" : "Live GPS");
+                timestampText.textContent = new Date().toLocaleTimeString();
+
+                if (typeof window.flashUpdate === "function") {
+                    window.flashUpdate(coordsText);
+                    window.flashUpdate(timestampText);
+                }
+
+                if (typeof window.glideMarker === "function") {
+                    window.glideMarker(marker, [lat, lon], 800);
+                } else {
+                    marker.setLatLng([lat, lon]);
+                }
+                map.panTo([lat, lon]);
+
+                gpsStatusBadge.textContent = "ACTIVE";
+                gpsStatusBadge.className = "badge badge-gps badge-gps-active";
+
+                if (simulated) {
+                    gpsTypeBadge.textContent = "Source: Simulated Demo GPS";
+                    gpsTypeBadge.className = "badge badge-warning";
+                } else {
+                    gpsTypeBadge.textContent = "Source: Live Actual Browser GPS";
+                    gpsTypeBadge.className = "badge badge-success";
+                }
+            } else {
+                showAlert(data.error || "GPS rejected by server.", "alert-danger");
+            }
+        } catch (e) {
+            console.error("Location broadcast error:", e);
+        }
+    }
+
+    // 3. Live Browser GPS Broadcast (Takes location live!)
+    function startLiveLocationBroadcasting() {
+        stopGpsLoop();
+
+        if (!navigator.geolocation) {
+            showAlert("Browser Geolocation is not supported by your browser. Fallback to demo simulation available below.", "alert-warning");
+            startSimulatedLoop();
+            return;
+        }
+
+        showAlert("Acquiring live browser GPS coordinates...", "alert-info");
+
+        // First immediate position fetch
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                isSimulated = false;
+                showAlert("🛰️ Live GPS acquired! Broadcasting live location every 5 seconds.", "alert-success");
+                publishLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, false);
+
+                // Start 5-second location broadcasting loop
+                gpsLoopId = setInterval(() => {
+                    navigator.geolocation.getCurrentPosition(
+                        (p) => {
+                            publishLocation(p.coords.latitude, p.coords.longitude, p.coords.accuracy, false);
+                        },
+                        (err) => {
+                            console.warn("GPS watch poll error:", err.message);
+                        },
+                        { enableHighAccuracy: true, timeout: 4500, maximumAge: 0 }
+                    );
+                }, 5000);
+            },
+            (err) => {
+                let msg = "Browser GPS permission was denied or unavailable.";
+                if (err.code === 1) msg = "Browser GPS permission denied by user.";
+                else if (err.code === 2) msg = "Browser GPS position unavailable.";
+                else if (err.code === 3) msg = "Browser GPS timed out.";
+
+                showAlert(`${msg} You can use the clearly labeled simulated demo coordinates below.`, "alert-warning");
+                gpsStatusBadge.textContent = "DENIED / UNAVAILABLE";
+                gpsStatusBadge.className = "badge badge-gps badge-gps-denied";
+            },
+            { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+        );
+    }
+
+    // Clearly labeled simulation fallback
+    function startSimulatedLoop() {
+        stopGpsLoop();
+        isSimulated = true;
+        gpsTypeBadge.textContent = "Source: Simulated Demo GPS";
+        gpsTypeBadge.className = "badge badge-warning";
+        showAlert("Broadcasting clearly labeled SIMULATED demo coordinates (5s loop).", "alert-warning");
+
+        function sendSim() {
+            currentLat += (Math.random() - 0.5) * 0.0008;
+            currentLon += (Math.random() - 0.5) * 0.0008;
+            publishLocation(currentLat, currentLon, null, true);
+        }
+        sendSim();
+        gpsLoopId = setInterval(sendSim, 5000);
+    }
+
+    // Location control buttons
+    btnRefreshGps.addEventListener("click", () => {
+        startLiveLocationBroadcasting();
+    });
+
+    btnSimGps.addEventListener("click", () => {
+        startSimulatedLoop();
+    });
+
+    btnStopGps.addEventListener("click", () => {
+        stopGpsLoop();
+        showAlert("Location broadcast loop paused.", "alert-warning");
+    });
+
+    function stopGpsLoop() {
+        if (gpsLoopId) {
+            clearInterval(gpsLoopId);
+            gpsLoopId = null;
+        }
+        gpsStatusBadge.textContent = "PAUSED";
+        gpsStatusBadge.className = "badge badge-gps badge-gps-offline";
+    }
+
+    // 4. Mission polling (detects incoming emergency requests)
+    async function fetchAmbulanceState() {
+        if (!currentAmbulanceId) return;
+
+        try {
+            const resp = await fetch(`/api/ambulances/${currentAmbulanceId}`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (!data.success || !data.ambulance) return;
+
+            const amb = data.ambulance;
+            statusPill.textContent = amb.status;
+            statusPill.className = `badge badge-lg badge-status-${amb.status.toLowerCase()}`;
+
+            if (amb.active_assignment) {
+                missionCard.classList.remove("d-none");
+                missionRef.textContent = amb.active_assignment.reference_no;
+                missionPickup.textContent = amb.active_assignment.pickup_address;
+                missionStatusBadge.textContent = amb.active_assignment.status;
+                missionStatusBadge.className = `badge badge-status-${amb.active_assignment.status.toLowerCase()}`;
+            } else {
+                missionCard.classList.add("d-none");
+            }
+        } catch (e) {}
+    }
+
+    function startMissionPolling() {
+        stopMissionPolling();
+        fetchAmbulanceState();
+        missionPollId = setInterval(fetchAmbulanceState, 5000);
+    }
+
+    function stopMissionPolling() {
+        if (missionPollId) {
+            clearInterval(missionPollId);
+            missionPollId = null;
+        }
+    }
+
+    // Step Demo Movement 25% closer to patient
+    btnMissionStep.addEventListener("click", async () => {
+        if (!currentAmbulanceId) return;
+        try {
+            const resp = await fetch("/api/demo/step-simulation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ambulance_id: Number(currentAmbulanceId) })
+            });
+            const data = await resp.json();
+            if (resp.ok && data.success && data.ambulance) {
+                showAlert("Vehicle moved 25% closer to patient pickup (Simulated).", "alert-success");
+                currentLat = data.ambulance.current_latitude;
+                currentLon = data.ambulance.current_longitude;
+                coordsText.textContent = `${currentLat.toFixed(5)}, ${currentLon.toFixed(5)}`;
+                timestampText.textContent = new Date().toLocaleTimeString();
+                marker.setLatLng([currentLat, currentLon]);
+                map.panTo([currentLat, currentLon]);
+            }
+        } catch (e) {
+            showAlert("Error stepping demo simulation.", "alert-danger");
+        }
+    });
+
+    // Mark Arrived & Complete
+    btnMissionArrive.addEventListener("click", async () => {
+        await executeMissionAction("ARRIVED");
+    });
+
+    btnMissionComplete.addEventListener("click", async () => {
+        await executeMissionAction("COMPLETE");
+    });
+
+    async function executeMissionAction(action) {
+        if (!currentAmbulanceId) return;
+        try {
+            const resp = await fetch(`/api/ambulances/${currentAmbulanceId}/action`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: action })
+            });
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                showAlert(`Action '${action}' saved.`, "alert-success");
+                if (action === "COMPLETE") {
+                    missionCard.classList.add("d-none");
+                    statusPill.textContent = "AVAILABLE";
+                    statusPill.className = "badge badge-lg badge-status-available";
+                } else {
+                    missionStatusBadge.textContent = data.assignment_status;
+                    missionStatusBadge.className = `badge badge-status-${data.assignment_status.toLowerCase()}`;
+                }
+            } else {
+                showAlert(data.error || "Action rejected by server.", "alert-danger");
+            }
+        } catch (e) {
+            showAlert("Network error submitting action.", "alert-danger");
+        }
+    }
+
+    function showAlert(msg, cls) {
+        alertBox.className = `alert ${cls}`;
+        alertBox.innerHTML = msg;
+        alertBox.classList.remove("d-none");
+        setTimeout(() => alertBox.classList.add("d-none"), 6000);
+    }
+
+    window.addEventListener("beforeunload", () => {
+        stopGpsLoop();
+        stopMissionPolling();
+    });
+});
+</script>
+{% endblock %}

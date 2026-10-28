@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container page-container">
+    <!-- 1. Patient Emergency Request Form View -->
+    <div id="request-view" class="request-grid">
+        <!-- Emergency Request Form Column -->
+        <div class="card request-card">
+            <div class="card-header">
+                <span class="badge badge-emergency">PUBLIC PATIENT PORTAL — NO LOGIN REQUIRED</span>
+                <h1>Request an <span>Ambulance</span></h1>
+                <p class="text-muted">Click Use My Location or enter coordinates. The system automatically dispatches the nearest available ambulance.</p>
+            </div>
+
+            <div id="request-alert" class="alert d-none" role="alert"></div>
+
+            <form id="emergency-form" class="emergency-form">
+                <div class="form-group">
+                    <label for="patient_name">Patient / Caller Name <span class="required">*</span></label>
+                    <input id="patient_name" name="patient_name" type="text" placeholder="e.g. John Doe" maxlength="100" value="Emergency Patient" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="contact_phone">Contact Phone Number <span class="required">*</span></label>
+                    <input id="contact_phone" name="contact_phone" type="tel" placeholder="e.g. +91 98765 43210" maxlength="30" value="+91 98765 43210" required>
+                    <small class="form-help">Only used for driver coordination during this emergency. Not shared publicly.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="pickup_address">Pickup Address / Landmark <span class="required">*</span></label>
+                    <input id="pickup_address" name="pickup_address" type="text" placeholder="e.g. Brigade Road Junction, MG Road" maxlength="255" value="MG Road Metro, Bangalore" required>
+                </div>
+
+                <div class="form-group location-group">
+                    <label>Emergency GPS Coordinates <span class="required">*</span></label>
+                    
+                    <div class="location-toolbar" style="margin-bottom: 8px;">
+                        <button type="button" id="btn-use-gps" class="btn btn-secondary btn-sm">
+                            📍 Use My Location (Browser GPS)
+                        </button>
+                        <span id="gps-status-indicator" class="gps-status-pill">GPS Ready</span>
+                    </div>
+
+                    <div class="preset-locations" style="margin-bottom: 8px;">
+                        <span class="preset-label">Demo Test Locations:</span>
+                        <button type="button" class="btn-preset" data-lat="12.9750" data-lon="77.6050" data-address="MG Road Metro, Bangalore">Central Metro</button>
+                        <button type="button" class="btn-preset" data-lat="12.9340" data-lon="77.6150" data-address="Forum Mall, Koramangala">Koramangala</button>
+                        <button type="button" class="btn-preset" data-lat="12.9780" data-lon="77.6400" data-address="100ft Road, Indiranagar">Indiranagar</button>
+                    </div>
+
+                    <div class="coords-row">
+                        <div>
+                            <label for="latitude" class="sub-label">Latitude</label>
+                            <input id="latitude" name="latitude" type="number" step="0.000001" placeholder="12.9716" value="12.9750" required>
+                        </div>
+                        <div>
+                            <label for="longitude" class="sub-label">Longitude</label>
+                            <input id="longitude" name="longitude" type="number" step="0.000001" placeholder="77.5946" value="77.6050" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="emergency_notes">Emergency Details / Symptoms (Optional)</label>
+                    <textarea id="emergency_notes" name="emergency_notes" rows="2" placeholder="Describe symptoms or special access instructions..."></textarea>
+                </div>
+
+                <button type="submit" id="btn-submit-request" class="btn btn-emergency btn-full">
+                    <span class="btn-text">🚨 Dispatch Nearest Ambulance Now</span>
+                    <span class="btn-spinner d-none"></span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Right Side: Mini Preview Map & Reopen Tracking Card -->
+        <div class="side-column">
+            <!-- Map Pin Drop Card -->
+            <div class="card map-preview-card">
+                <div class="card-header flex-header">
+                    <h3>Pickup Pinpoint</h3>
+                    <small class="text-muted">Click map to set emergency pin</small>
+                </div>
+                <div id="request-map" class="mini-map"></div>
+                <div class="map-hint">
+                    ℹ️ Straight-line Haversine algorithm will calculate the nearest available ambulance to this pin.
+                </div>
+            </div>
+
+            <!-- Reopen Tracking Card -->
+            <div class="card reopen-card">
+                <h3>Track Existing Request</h3>
+                <p class="text-muted text-sm">Have a reference number and token? Reopen your tracking screen securely.</p>
+                <form id="reopen-form" class="reopen-form">
+                    <div class="form-group">
+                        <label for="reopen_ref">Reference Number</label>
+                        <input id="reopen_ref" type="text" placeholder="e.g. RR-20261028-A4F9" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reopen_token">Security Tracking Token</label>
+                        <input id="reopen_token" type="text" placeholder="Paste your tracking token" required>
+                    </div>
+                    <button type="submit" class="btn btn-outline btn-full">Reopen Live Tracking ↗</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Embedded Live Tracking View (Requirement 3 & 5: Live tracking on /) -->
+    <div id="tracking-view" class="d-none">
+        <div class="card tracking-header-card" style="margin-bottom: 20px;">
+            <div class="tracking-summary">
+                <div>
+                    <span class="badge badge-outline">REFERENCE: <strong id="live-ref">--</strong></span>
+                    <button type="button" id="btn-copy-live-ref" class="btn-copy">📋 Copy</button>
+                    <h2>Live <span>Emergency Dispatch Tracking</span></h2>
+                    <p class="text-muted">Nearest ambulance was assigned automatically using Haversine distance.</p>
+                </div>
+                <div class="status-box">
+                    <span class="status-label">Emergency Status</span>
+                    <div id="live-status-badge" class="badge badge-lg badge-status-assigned">ASSIGNED</div>
+                </div>
+            </div>
+
+            <div class="token-banner">
+                <span class="token-title">🔒 Unguessable Tracking Token:</span>
+                <code id="live-token-display">--</code>
+                <a id="live-external-link" href="#" target="_blank" class="btn-copy" style="text-decoration: none;">🔗 Open Full Page Tracker</a>
+                <button type="button" id="btn-new-request" class="btn btn-sm btn-secondary" style="margin-left: auto;">➕ New Request</button>
+            </div>
+        </div>
+
+        <div class="tracking-grid">
+            <!-- Live Leaflet Map Column -->
+            <div class="card map-card">
+                <div class="card-header flex-header">
+                    <div>
+                        <h3>Live GPS Map</h3>
+                        <small id="live-gps-source" class="gps-source-badge">🛰️ Live GPS Tracking</small>
+                    </div>
+                    <div class="pulse-sync" title="Auto-updating backend data every 5 seconds">
+                        <span class="sync-dot"></span> Polling Flask Backend (5s)
+                    </div>
+                </div>
+
+                <div id="inline-tracking-map" style="height: 420px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);"></div>
+
+                <div class="map-legend">
+                    <span><span class="legend-dot red-dot"></span> Patient Pickup</span>
+                    <span><span class="legend-dot green-dot"></span> Assigned Ambulance</span>
+                    <span><span class="legend-line"></span> Straight-Line Trajectory</span>
+                </div>
+            </div>
+
+            <!-- Assigned Ambulance & Trip Details Column -->
+            <div class="card details-card">
+                <h3>Dispatch & Unit Details</h3>
+
+                <div class="details-section">
+                    <h4>Assigned Ambulance</h4>
+                    <div id="live-unit-info">
+                        <div class="unit-stat-row">
+                            <span class="stat-label">Call Sign:</span>
+                            <span class="stat-value" id="live-amb-sign" style="font-size: 1.15rem; color: var(--color-available); font-weight: bold;">--</span>
+                        </div>
+                        <div class="unit-stat-row">
+                            <span class="stat-label">Driver:</span>
+                            <span class="stat-value" id="live-amb-driver">--</span>
+                        </div>
+                        <div class="unit-stat-row">
+                            <span class="stat-label">Vehicle Plate:</span>
+                            <span class="stat-value" id="live-amb-plate">--</span>
+                        </div>
+                        <div class="unit-stat-row">
+                            <span class="stat-label">Ambulance State:</span>
+                            <span class="stat-value" id="live-amb-state" style="font-weight: bold;">BUSY (On Call)</span>
+                        </div>
+                        <div class="unit-stat-row">
+                            <span class="stat-label">Last GPS Update:</span>
+                            <span class="stat-value" id="live-last-gps-time" style="color: var(--color-success); font-weight: bold;">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="details-section">
+                    <h4>Distance & Estimated Arrival</h4>
+                    <div class="stat-box-highlight">
+                        <div class="stat-unit">
+                            <span class="stat-big" id="live-stat-dist">--</span>
+                            <span class="stat-unit-label">km (Straight-line)</span>
+                        </div>
+                        <div class="stat-unit">
+                            <span class="stat-big" id="live-stat-eta">--</span>
+                            <span class="stat-unit-label">min (Est. travel time)</span>
+                        </div>
+                    </div>
+                    <p class="notice-eta">
+                        ⚠️ <strong>Straight-line estimate:</strong> Based on 40 km/h average speed. Real road conditions and traffic may vary.
+                    </p>
+                </div>
+
+                <div class="details-section">
+                    <h4>Pickup Location</h4>
+                    <p class="location-text">📍 <span id="live-pickup-address">--</span></p>
+                    <small class="text-muted" id="live-pickup-coords">Coords: --</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/request.js') }}"></script>
+{% endblock %}

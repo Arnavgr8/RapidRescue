@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container page-container">
+    <div class="card dispatch-header-card">
+        <div class="dispatch-header-row">
+            <div>
+                <span class="badge badge-outline">CENTRAL DISPATCH CONSOLE</span>
+                <h1>Fleet <span>Operations & Demo</span></h1>
+                <p class="text-muted">Real-time overview of ambulances, GPS coordinate health, and active emergencies.</p>
+            </div>
+            <div class="demo-actions">
+                <button type="button" id="btn-demo-step-all" class="btn btn-warning btn-sm">
+                    ⚡ Step Simulated Movement (All Busy)
+                </button>
+                <button type="button" id="btn-demo-reseed" class="btn btn-outline btn-sm">
+                    🔄 Reset / Re-seed Demo Fleet
+                </button>
+            </div>
+        </div>
+
+        <!-- Metric Counter Cards -->
+        <div class="stats-grid">
+            <div class="metric-card">
+                <span class="metric-label">Total Fleet</span>
+                <span class="metric-value">{{ ambulances|length }}</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Available Units</span>
+                <span class="metric-value text-success">
+                    {{ ambulances|selectattr("status", "equalto", "AVAILABLE")|list|length }}
+                </span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Busy Units</span>
+                <span class="metric-value text-warning">
+                    {{ ambulances|selectattr("status", "equalto", "BUSY")|list|length }}
+                </span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Offline Units</span>
+                <span class="metric-value text-muted">
+                    {{ ambulances|selectattr("status", "equalto", "OFFLINE")|list|length }}
+                </span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Recent Emergencies</span>
+                <span class="metric-value text-danger">{{ emergencies|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Fleet Map -->
+    <div class="card map-card" style="margin-top: 20px;">
+        <div class="card-header flex-header">
+            <h3>City Fleet & Emergency Map</h3>
+            <span class="text-muted text-sm">Real-time GPS markers (Auto-refreshed)</span>
+        </div>
+        <div id="dispatch-map" class="map-view" style="height: 380px;"></div>
+    </div>
+
+    <!-- Tables Grid -->
+    <div class="dispatch-tables-grid" style="margin-top: 20px;">
+        <!-- Ambulance Fleet Table -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Ambulance Units</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Call Sign</th>
+                            <th>Driver</th>
+                            <th>Status</th>
+                            <th>Coordinates</th>
+                            <th>GPS Source</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fleet-tbody">
+                        {% for a in ambulances %}
+                        <tr>
+                            <td><strong>{{ a.call_sign }}</strong></td>
+                            <td>{{ a.driver.name if a.driver else 'Unassigned' }}</td>
+                            <td>
+                                <span class="badge badge-status-{{ a.status.lower() }}">
+                                    {{ a.status }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if a.current_latitude %}
+                                    {{ "%.4f"|format(a.current_latitude) }}, {{ "%.4f"|format(a.current_longitude) }}
+                                {% else %}
+                                    <span class="text-muted">None</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if a.is_simulated_gps %}
+                                    <span class="badge badge-simulated">Simulated</span>
+                                {% elif a.current_latitude %}
+                                    <span class="badge badge-live">Live</span>
+                                {% else %}
+                                    <span class="badge badge-offline">Offline</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Emergencies Table -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Recent Emergency Requests</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Status</th>
+                            <th>Assigned Unit</th>
+                            <th>Straight-Line Dist</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in emergencies %}
+                        <tr>
+                            <td><code>{{ e.reference_no }}</code></td>
+                            <td>
+                                <span class="badge badge-status-{{ e.status.lower() }}">
+                                    {{ e.status }}
+                                </span>
+                            </td>
+                            <td>{{ e.assigned_ambulance.call_sign if e.assigned_ambulance else 'None' }}</td>
+                            <td>
+                                {{ "%.2f"|format(e.straight_line_distance_km) if e.straight_line_distance_km is not none else '--' }} km
+                            </td>
+                            <td>
+                                <a href="{{ url_for('track_page', reference_no=e.reference_no, token=e.tracking_token) }}" class="btn btn-outline btn-xs" target="_blank">
+                                    Track ↗
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No emergency requests registered yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const FLEET_DATA = [
+        {% for a in ambulances %}
+        {
+            call_sign: {{ a.call_sign|tojson }},
+            status: {{ a.status|tojson }},
+            is_online: {{ 'true' if a.is_online else 'false' }},
+            lat: {{ a.current_latitude if a.current_latitude else 'null' }},
+            lon: {{ a.current_longitude if a.current_longitude else 'null' }},
+            is_simulated: {{ 'true' if a.is_simulated_gps else 'false' }}
+        },
+        {% endfor %}
+    ];
+
+    const EMERGENCY_DATA = [
+        {% for e in emergencies %}
+        {
+            ref: {{ e.reference_no|tojson }},
+            status: {{ e.status|tojson }},
+            lat: {{ e.latitude }},
+            lon: {{ e.longitude }}
+        },
+        {% endfor %}
+    ];
+</script>
+<script src="{{ url_for('static', filename='js/dispatch.js') }}"></script>
+{% endblock %}
+

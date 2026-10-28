@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container page-container">
+    <!-- Driver Info & Status Header -->
+    <div class="card driver-header-card">
+        <div class="driver-profile-row">
+            <div>
+                <span class="badge badge-outline">BADGE: {{ driver.badge_number }}</span>
+                <h2>Driver <span>{{ driver.name }}</span></h2>
+                <p class="text-muted">Assigned Unit: <strong>{{ ambulance.call_sign if ambulance else 'Unassigned' }}</strong> (Plate: {{ ambulance.vehicle_plate if ambulance else '--' }})</p>
+            </div>
+
+            <!-- Online / Offline Toggle Section -->
+            <div class="driver-controls-box">
+                <div class="availability-status">
+                    <span class="sub-label">Current Fleet Status</span>
+                    <div id="unit-status-badge" class="badge badge-lg badge-status-{{ ambulance.status.lower() if ambulance else 'offline' }}">
+                        {{ ambulance.status if ambulance else 'OFFLINE' }}
+                    </div>
+                </div>
+
+                <div class="toggle-buttons">
+                    <button type="button" id="btn-go-online" class="btn btn-success {{ 'd-none' if ambulance and ambulance.is_online else '' }}">
+                        🟢 Go Online (Available)
+                    </button>
+                    <button type="button" id="btn-go-offline" class="btn btn-secondary {{ '' if ambulance and ambulance.is_online else 'd-none' }}">
+                        ⚪ Go Offline
+                    </button>
+                    <a href="{{ url_for('driver_logout') }}" class="btn btn-outline btn-sm">Log Out</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- GPS Sharing Status Strip -->
+        <div class="gps-strip">
+            <div class="gps-indicator-group">
+                <span class="strip-label">GPS Location Sharing:</span>
+                <span id="gps-status-badge" class="badge badge-gps badge-gps-{{ gps_status.lower() }}">
+                    {{ gps_status }}
+                </span>
+                <span id="gps-coords-display" class="coords-text">
+                    {% if ambulance and ambulance.current_latitude %}
+                        ({{ "%.5f"|format(ambulance.current_latitude) }}, {{ "%.5f"|format(ambulance.current_longitude) }})
+                    {% else %}
+                        (No coordinates published)
+                    {% endif %}
+                </span>
+                <span id="gps-type-tag" class="text-sm text-muted">
+                    {% if ambulance and ambulance.is_simulated_gps %}[Simulated]{% else %}[Live]{% endif %}
+                </span>
+            </div>
+
+            <div class="gps-actions-group">
+                <button type="button" id="btn-enable-browser-gps" class="btn btn-outline btn-sm">
+                    🛰️ Publish Browser GPS
+                </button>
+                <button type="button" id="btn-step-demo-gps" class="btn btn-outline btn-sm" title="Simulates vehicle moving 25% closer to assigned patient">
+                    ⚡ Step Demo Movement
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Assignment & Workflow Section -->
+    <div class="driver-workspace-grid">
+        <!-- Current Assignment Column -->
+        <div class="card assignment-card">
+            <div class="card-header flex-header">
+                <h3>Current Emergency Assignment</h3>
+                <span id="assignment-busy-indicator" class="badge {{ 'badge-emergency' if assignment else 'badge-outline' }}">
+                    {{ 'BUSY - ACTIVE MISSION' if assignment else 'STANDBY / IDLE' }}
+                </span>
+            </div>
+
+            <div id="assignment-alert" class="alert d-none"></div>
+
+            <div id="no-assignment-view" class="{{ 'd-none' if assignment else '' }}">
+                <div class="standby-box text-center">
+                    <div class="radar-ping"></div>
+                    <h4>Waiting for Dispatch Assignments</h4>
+                    <p class="text-muted">
+                        Keep your status <strong>ONLINE</strong> and your GPS updated. When an emergency is requested in your area, RapidRescue will automatically route it to this ambulance.
+                    </p>
+                </div>
+            </div>
+
+            <div id="active-assignment-view" class="{{ '' if assignment else 'd-none' }}">
+                {% if assignment %}
+                <div class="assignment-details-box">
+                    <div class="detail-row">
+                        <span class="d-label">Emergency Reference:</span>
+                        <strong class="d-val" id="assign-ref">{{ assignment.request.reference_no }}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span class="d-label">Patient Pickup Address:</span>
+                        <span class="d-val" id="assign-address">{{ assignment.request.pickup_address }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="d-label">Emergency Notes:</span>
+                        <span class="d-val text-muted" id="assign-notes">{{ assignment.request.emergency_notes or 'None reported' }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="d-label">Straight-Line Distance:</span>
+                        <strong class="d-val" id="assign-dist">
+                            {{ "%.2f"|format(assignment.request.straight_line_distance_km) if assignment.request.straight_line_distance_km is not none else "--" }} km
+                        </strong>
+                    </div>
+                    <div class="detail-row">
+                        <span class="d-label">Mission Stage:</span>
+                        <span id="assign-stage-badge" class="badge badge-status-{{ assignment.status.lower() }}">
+                            {{ assignment.status }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Step-by-Step Transition Controls -->
+                <div class="action-progression-box">
+                    <h4>Action Controls</h4>
+                    <p class="text-muted text-sm">State transitions are validated on the server. Actions must occur in sequence.</p>
+
+                    <div class="action-buttons-group">
+                        <button type="button" id="btn-action-accept" class="btn btn-warning btn-action" {{ 'disabled' if assignment.status != 'DISPATCHED' else '' }}>
+                            1. Accept Assignment
+                        </button>
+                        <button type="button" id="btn-action-arrived" class="btn btn-info btn-action" {{ 'disabled' if assignment.status not in ['ACCEPTED', 'EN_ROUTE'] else '' }}>
+                            2. Mark Arrived at Patient
+                        </button>
+                        <button type="button" id="btn-action-complete" class="btn btn-success btn-action" {{ 'disabled' if assignment.status != 'ARRIVED' else '' }}>
+                            3. Complete Trip & Return Available
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Driver Map Column -->
+        <div class="card driver-map-card">
+            <div class="card-header flex-header">
+                <h3>Navigation Overview</h3>
+                <small class="text-muted">Ambulance & Patient Coordinates</small>
+            </div>
+            <div id="driver-map" class="driver-map-view"></div>
+            <div class="map-hint">
+                Shows your current GPS location and the pickup point when assigned.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const CURRENT_AMB_ID = {{ ambulance.id if ambulance else 'null' }};
+    const CURRENT_IS_ONLINE = {{ 'true' if ambulance and ambulance.is_online else 'false' }};
+    const CURRENT_AMB_STATUS = {{ (ambulance.status if ambulance else 'OFFLINE')|tojson }};
+    const DRIVER_INITIAL_LAT = {{ (ambulance.current_latitude if ambulance and ambulance.current_latitude else 12.9716)|tojson }};
+    const DRIVER_INITIAL_LON = {{ (ambulance.current_longitude if ambulance and ambulance.current_longitude else 77.5946)|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/driver.js') }}"></script>
+{% endblock %}
+
